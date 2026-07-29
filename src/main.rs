@@ -1,7 +1,13 @@
+use std::fs::File;
+use std::io::BufReader;
+use std::path::PathBuf;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
 use actix_cors::Cors;
+use actix_files::NamedFile;
+use actix_web::error::BlockingError;
 use actix_web::http::header;
+use serde_json::Value;
 use tracing_appender::rolling;
 use tracing_subscriber::{fmt, EnvFilter};
 use tracing_subscriber::layer::SubscriberExt;
@@ -50,4 +56,11 @@ async fn main() -> std::io::Result<()> {
 #[get("/version")]
 async fn version() -> impl Responder {
     HttpResponse::Ok().body("V0.1.0")
+}
+
+#[get("/projects")]
+async fn projects() -> Result<NamedFile, actix_web::Error> {
+    let path: PathBuf = "./static/projects.json".into();
+    let file = NamedFile::open_async(path).await?;
+    Ok(file)
 }
