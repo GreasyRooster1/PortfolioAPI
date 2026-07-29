@@ -47,6 +47,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new(r#"%{CF-Connecting-IP}i (%a) "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T"#))
             .wrap(cors)
             .service(version)
+            .service(projects)
     })
         .bind(("0.0.0.0", 8080))?
         .run()
