@@ -2,13 +2,32 @@ use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
 use actix_cors::Cors;
 use actix_web::http::header;
+use tracing_appender::rolling;
+use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     if let Err(e) = dotenvy::dotenv() {
         println!("cargo:warning=Could not load .env file: {}", e);
     }
+
+    let file_appender = rolling::Builder::new()
+        .rotation(rolling::Rotation::DAILY)
+        .filename_prefix("api.log")
+        .max_log_files(14)
+        .build("./logs")
+        .expect("failed to build appender");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::from_default_env())
+        // file layer — daily rotating, no ANSI colors in files
+        .with(fmt::layer().with_writer(non_blocking).with_ansi(false))
+        // stdout layer — keep console output too
+        .with(fmt::layer().with_writer(std::io::stdout))
+        .init();
 
     HttpServer::new(|| {
         let cors = Cors::default()
