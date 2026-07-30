@@ -9,14 +9,16 @@ use actix_files::NamedFile;
 use actix_web::error::BlockingError;
 use actix_web::http::header;
 use actix_web::web::Json;
+use firebase_rs::Firebase;
 use serde_json::Value;
+use tracing::error;
 use tracing_appender::rolling;
 use tracing_subscriber::{fmt, EnvFilter};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-static PROJECT_COUNT: LazyLock<i32> = LazyLock::new(|| {
-    3
+static PROJECT_COUNT: LazyLock<Mutex<i32>> = LazyLock::new(|| {
+    Mutex::new(0)
 });
 
 #[actix_web::main]
@@ -76,5 +78,16 @@ async fn projects() -> Result<NamedFile, actix_web::Error> {
 
 #[get("/qcode_project_count")]
 async fn qcode_project_count() -> impl Responder {
-    Json(*PROJECT_COUNT)
+    Json(PROJECT_COUNT.lock().expect("could not lock project count").clone())
+}
+
+async fn update_qcode_project_count(){
+    let userdata_ref = Firebase::new("https://qcode-cdfc6-default-rtdb.firebaseio.com/")
+        .unwrap()
+        .at("userdata");
+    let data = match userdata_ref.get::<Value>().await {
+        Ok(d) => d,
+        Err(err) => {error!("Could not pull userdata/ from firebase: {err}"); return;},
+    };
+    
 }
