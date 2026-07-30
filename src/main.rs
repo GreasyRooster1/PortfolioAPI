@@ -23,9 +23,15 @@ use tracing_subscriber::util::SubscriberInitExt;
 use gcp_auth::CustomServiceAccount;
 use firebase_realtime_database::Database;
 
-
-static PROJECT_COUNT: LazyLock<Mutex<i32>> = LazyLock::new(|| {
-    Mutex::new(0)
+struct ProjectData{
+    total_projects: i32,
+    total_lines: i32,
+}
+static QCODE_DATA: LazyLock<Mutex<ProjectData>> = LazyLock::new(|| {
+    Mutex::new(ProjectData{
+        total_projects:0,
+        total_lines:0,
+    })
 });
 
 #[actix_web::main]
@@ -70,6 +76,7 @@ async fn main() -> std::io::Result<()> {
             .service(version)
             .service(projects)
             .service(qcode_project_count)
+            .service(qcode_line_count)
     })
         .bind(("0.0.0.0", 8080))?
         .run()
@@ -90,7 +97,12 @@ async fn projects() -> Result<NamedFile, actix_web::Error> {
 
 #[get("/qcode_project_count")]
 async fn qcode_project_count() -> impl Responder {
-    Json(PROJECT_COUNT.lock().expect("could not lock project count").clone())
+    Json(QCODE_DATA.lock().expect("could not lock project count").total_projects.clone())
+}
+
+#[get("/qcode_line_count")]
+async fn qcode_line_count() -> impl Responder {
+    Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
 }
 
 async fn run_daily_job() {
@@ -116,8 +128,9 @@ async fn update_qcode_project_count(){
     };
 
 
-    let mut count = 0;
+    let mut proj_count = 0;
     let mut usr_count = 0;
+    let mut line_count = 0;
     for (key,data) in data.as_object().unwrap() {
         let projs_option = data.get("projects");
         let username = match data.get("username") {
@@ -128,9 +141,11 @@ async fn update_qcode_project_count(){
         match projs_option{
             Some(projs) => {
                 let val = projs.as_object().unwrap().len();
-                count += val;
+                let lines = calculate_user_lines(projs)
+                line_count += lines;
+                proj_count += val;
                 usr_count+=1;
-                info!("{username} ({key}) has {val} projects");
+                info!("{username} ({key}) has {val} projects and {lines} lines");
             }
             None => {
                 continue;
@@ -139,6 +154,19 @@ async fn update_qcode_project_count(){
 
     }
 
-    info!("Total projects: {count} from {usr_count} users");
-    *PROJECT_COUNT.lock().unwrap() = count as i32;
+    info!("Total projects: {proj_count} with {line_count} from {usr_count} users");
+    *QCODE_DATA.lock().unwrap() = ProjectData{
+        total_projects: proj_count as i32,
+        total_lines: line_count,
+    }
+}
+
+fn calculate_user_lines(projs: &Value) -> i32 {
+    let mut total:i32 = 0;
+    for (key,data) in projs.as_object().unwrap() {
+        let code = data.get("code").unwrap().as_str().unwrap();
+        let lines: Vec<&str> = code.split('\n').collect();
+        total += lines.len() as i32;
+    }
+    total
 }
