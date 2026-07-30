@@ -141,7 +141,8 @@ async fn update_qcode_project_count(){
         match projs_option{
             Some(projs) => {
                 let val = projs.as_object().unwrap().len();
-                let lines = calculate_user_lines(projs)
+                let lines = calculate_user_lines(projs);
+
                 line_count += lines;
                 proj_count += val;
                 usr_count+=1;
