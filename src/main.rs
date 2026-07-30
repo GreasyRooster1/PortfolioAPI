@@ -115,9 +115,9 @@ async fn update_qcode_project_count(){
         Err(err) => {error!("userdata request failed"); return;},
     };
 
-    info!("data: {}", Json(data.clone()).to_string());
 
     let mut count = 0;
+    let mut usr_count = 0;
     for (key,data) in data.as_object().unwrap() {
         let projs_option = data.get("projects");
         let username = match data.get("username") {
@@ -129,6 +129,7 @@ async fn update_qcode_project_count(){
             Some(projs) => {
                 let val = projs.as_object().unwrap().len();
                 count += val;
+                usr_count+=1;
                 info!("{username} ({key}) has {val} projects");
             }
             None => {
@@ -138,6 +139,6 @@ async fn update_qcode_project_count(){
 
     }
 
-    info!("Total projects: {count}");
+    info!("Total projects: {count} from {usr_count} users");
     *PROJECT_COUNT.lock().unwrap() = count as i32;
 }
