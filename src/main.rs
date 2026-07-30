@@ -1,17 +1,23 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use std::sync::{LazyLock, Mutex};
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
 use actix_cors::Cors;
 use actix_files::NamedFile;
 use actix_web::error::BlockingError;
 use actix_web::http::header;
+use actix_web::web::Json;
 use serde_json::Value;
 use tracing_appender::rolling;
 use tracing_subscriber::{fmt, EnvFilter};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+
+static PROJECT_COUNT: LazyLock<i32> = LazyLock::new(|| {
+    3
+});
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -35,6 +41,7 @@ async fn main() -> std::io::Result<()> {
         .with(fmt::layer().with_writer(std::io::stdout))
         .init();
 
+
     HttpServer::new(|| {
         let cors = Cors::default()
             .allowed_origin("http://localhost:5173")
@@ -48,6 +55,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .service(version)
             .service(projects)
+            .service(qcode_project_count)
     })
         .bind(("0.0.0.0", 8080))?
         .run()
@@ -64,4 +72,9 @@ async fn projects() -> Result<NamedFile, actix_web::Error> {
     let path: PathBuf = "./static/projects.json".into();
     let file = NamedFile::open_async(path).await?;
     Ok(file)
+}
+
+#[get("/qcode_project_count")]
+async fn qcode_project_count() -> impl Responder {
+    Json(*PROJECT_COUNT)
 }
