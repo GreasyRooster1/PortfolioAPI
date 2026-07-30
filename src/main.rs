@@ -112,9 +112,15 @@ async fn update_qcode_project_count(){
     let mut count = 0;
     for data in data.as_array().unwrap() {
         let projs_option = data.get("projects");
+        let username = match data.get("username") {
+            Some(u) => u.as_str().unwrap_or("(no username)"),
+            None => "(no username)",
+        };
+        info!("Parsing projects for: {}", username);
         match projs_option{
             Some(projs) => {
                 count += projs.as_object().unwrap().len();
+                info!("{username} has {count} projects");
             }
             None => {
                 continue;
@@ -122,5 +128,6 @@ async fn update_qcode_project_count(){
         }
 
     }
+    info!("Total projects: {count}");
     *PROJECT_COUNT.lock().unwrap() = count as i32;
 }
