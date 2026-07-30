@@ -165,7 +165,11 @@ async fn update_qcode_project_count(){
 fn calculate_user_lines(projs: &Value) -> i32 {
     let mut total:i32 = 0;
     for (key,data) in projs.as_object().unwrap() {
-        let code = data.get("code").unwrap().as_str().unwrap();
+        info!("{key}: {data}");
+        let code = match data.get("code") {
+            Some(code) => code.as_str().unwrap_or(""),
+            None => continue,
+        };
         let lines: Vec<&str> = code.split('\n').collect();
         total += lines.len() as i32;
     }
