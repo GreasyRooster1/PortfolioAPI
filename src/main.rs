@@ -89,5 +89,18 @@ async fn update_qcode_project_count(){
         Ok(d) => d,
         Err(err) => {error!("Could not pull userdata/ from firebase: {err}"); return;},
     };
-    
+    let mut count = 0;
+    for data in data.as_array().unwrap() {
+        let projs_option = data.get("projects");
+        match projs_option{
+            Some(projs) => {
+                count += projs.as_object().unwrap().len();
+            }
+            None => {
+                continue;
+            }
+        }
+
+    }
+    *PROJECT_COUNT.lock().unwrap() = count as i32;
 }
