@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
-use std::thread;
+use std::{fs, thread};
 use std::time::Duration;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
@@ -14,12 +14,15 @@ use actix_web::rt::time::{interval, Interval};
 use actix_web::web::Json;
 use firebase_rs::Firebase;
 use serde_json::Value;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use tracing::log::log;
 use tracing_appender::rolling;
 use tracing_subscriber::{fmt, EnvFilter};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use gcp_auth::CustomServiceAccount;
+use firebase_realtime_database::Database;
+
 
 static PROJECT_COUNT: LazyLock<Mutex<i32>> = LazyLock::new(|| {
     Mutex::new(0)
@@ -102,25 +105,31 @@ async fn run_daily_job() {
 
 
 async fn update_qcode_project_count(){
-    let userdata_ref = Firebase::new("https://qcode-cdfc6-default-rtdb.firebaseio.com/")
-        .unwrap()
-        .at("userdata");
-    let data = match userdata_ref.get::<Value>().await {
+    let database_ref = Database::from_path("qcode-cdfc6-default-rtdb", "./service-account.json");
+    let db = match database_ref {
         Ok(d) => d,
-        Err(err) => {error!("Could not pull userdata/ from firebase: {err}"); return;},
+        Err(err) => {error!("Could not connect to firebase: {err}"); return;},
     };
+    let data = match db.get("userdata").await {
+        Ok(res) => {res.json::<Value>().await.expect("could not parse request")}
+        Err(err) => {error!("userdata request failed"); return;},
+    };
+
+    info!("data: {}", Json(data.clone()).to_string());
+
     let mut count = 0;
-    for data in data.as_array().unwrap() {
+    for (key,data) in data.as_object().unwrap() {
         let projs_option = data.get("projects");
         let username = match data.get("username") {
             Some(u) => u.as_str().unwrap_or("(no username)"),
             None => "(no username)",
         };
-        info!("Parsing projects for: {}", username);
+        info!("Parsing projects for: {} ({key})", username);
         match projs_option{
             Some(projs) => {
-                count += projs.as_object().unwrap().len();
-                info!("{username} has {count} projects");
+                let val = projs.as_object().unwrap().len();
+                count += val;
+                info!("{username} ({key}) has {val} projects");
             }
             None => {
                 continue;
@@ -128,6 +137,7 @@ async fn update_qcode_project_count(){
         }
 
     }
+
     info!("Total projects: {count}");
     *PROJECT_COUNT.lock().unwrap() = count as i32;
 }
