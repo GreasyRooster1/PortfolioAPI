@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 use std::{fs, thread};
 use std::time::Duration;
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
 use actix_cors::Cors;
 use actix_files::NamedFile;
@@ -91,9 +91,10 @@ async fn version() -> impl Responder {
 }
 
 #[get("/projects")]
-async fn projects() -> Result<NamedFile, actix_web::Error> {
+async fn projects(req: HttpRequest) -> Result<NamedFile, actix_web::Error> {
     let path: PathBuf = "./static/projects.json".into();
     let file = NamedFile::open_async(path).await?;
+    ip::track_ip(req);
     Ok(file)
 }
 
