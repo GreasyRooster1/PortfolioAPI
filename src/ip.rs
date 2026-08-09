@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, BufWriter};
 use std::time::{SystemTime, UNIX_EPOCH};
 use actix_web::HttpRequest;
 use ipgeolocate::{Locator, Service};
@@ -91,7 +91,9 @@ pub fn update_cache(data:Locator) -> Result<(), Box<dyn Error>>{
             });
         }
     }
-
+    let file = File::create("./ip_cache.json")?;
+    let writer = BufWriter::new(file);
+    serde_json::to_writer(writer, &cache)?;
 
     Ok(())
 }
