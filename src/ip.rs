@@ -1,7 +1,8 @@
 use actix_web::HttpRequest;
+use ipgeolocate::{Locator, Service};
 use tracing::log::warn;
 
-pub(crate) fn track_ip(req: HttpRequest){
+pub(crate) async fn track_ip(req: HttpRequest){
     let client_ip = req
         .headers()
         .get("CF-Connecting-IP")
@@ -9,6 +10,12 @@ pub(crate) fn track_ip(req: HttpRequest){
     let ip = match client_ip {
         Some(addr) => addr,
         None => {warn!("could not find ip");return}
+    };
+    let service = Service::IpApi;
+
+    match Locator::get(ip, service).await {
+        Ok(ip) => println!("{} - {} ({})", ip.ip, ip.city, ip.country),
+        Err(error) => println!("Error: {}", error),
     };
     println!("{:?}", ip);
 }
