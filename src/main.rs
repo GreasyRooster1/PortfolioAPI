@@ -94,7 +94,7 @@ async fn version() -> impl Responder {
 async fn projects(req: HttpRequest) -> Result<NamedFile, actix_web::Error> {
     let path: PathBuf = "./static/projects.json".into();
     let file = NamedFile::open_async(path).await?;
-    ip::track_ip(req);
+    ip::track_ip(req).await;
     Ok(file)
 }
 
