@@ -14,7 +14,7 @@ pub(crate) async fn track_ip(req: HttpRequest){
     let service = Service::IpApi;
 
     match Locator::get(ip, service).await {
-        Ok(ip) => println!("{} - {} ({})", ip.ip, ip.city, ip.country),
+        Ok(ip) => println!("{} - {}, {} ({}) @ {}N {}W isp:{}", ip.ip, ip.city, ip.region, ip.country, ip.latitude, ip.longitude,ip.isp),
         Err(error) => println!("Error: {}", error),
     };
     println!("{:?}", ip);
