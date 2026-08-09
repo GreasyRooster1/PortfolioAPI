@@ -44,7 +44,10 @@ pub(crate) async fn track_ip(req: HttpRequest){
         Err(error) => {error!("Error: {}", error); return},
     };
     info!("Geolocated ip: {} - {}, {} ({}) @ {}N {}W isp:{}", data.ip, data.city, data.region, data.country, data.latitude, data.longitude,data.isp);
-    update_cache(data);
+    match update_cache(data){
+        Ok(_) => {},
+        Err(error) => {error!("Error: {}", error); return},
+    }
     println!("{:?}", ip);
 }
 
@@ -59,7 +62,7 @@ pub fn update_cache(data:Locator) -> Result<(), Box<dyn Error>>{
         .as_secs();
     match cache.found.get(&data.ip) {
 
-        Some(mut data) => {
+        Some(data) => {
             let mut hits = data.hits.clone();
 
             hits.push(current_time);
