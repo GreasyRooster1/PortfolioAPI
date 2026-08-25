@@ -24,6 +24,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use gcp_auth::CustomServiceAccount;
 use firebase_realtime_database::Database;
+use cronline::{Scheduler, Task};
 
 struct ProjectData{
     total_projects: i32,
@@ -58,10 +59,7 @@ async fn main() -> std::io::Result<()> {
         .with(fmt::layer().with_writer(std::io::stdout))
         .init();
     update_qcode_project_count().await;
-
-    thread::spawn(||{
-       run_daily_job()
-    });
+    run_daily_job().await;
 
 
     HttpServer::new(|| {
@@ -109,13 +107,16 @@ async fn qcode_line_count() -> impl Responder {
 }
 
 async fn run_daily_job() {
-    let mut daily_interval: Interval = interval(Duration::from_secs(24 * 60 * 60));
-
-    loop {
-        daily_interval.tick().await;
-        info!("Running daily task...");
-        update_qcode_project_count().await;
-    }
+    let scheduler = Scheduler::new();
+    scheduler
+        .add("0 6 * * *", Task::new(|| async {
+            info!("Running daily task...");
+            update_qcode_project_count().await;
+            Ok(())
+        }))
+        .await
+        .unwrap();
+    scheduler.run().await.unwrap();
 }
 
 
