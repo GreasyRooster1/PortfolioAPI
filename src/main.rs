@@ -59,7 +59,7 @@ async fn main() -> std::io::Result<()> {
         .with(fmt::layer().with_writer(std::io::stdout))
         .init();
     update_qcode_project_count().await;
-    run_daily_job().await;
+    run_daily_job();
 
 
     HttpServer::new(|| {
@@ -78,7 +78,7 @@ async fn main() -> std::io::Result<()> {
             .service(qcode_project_count)
             .service(qcode_line_count)
     })
-        .bind(("0.0.0.0", 8080))?
+        .bind(("localhost", 8080))?
         .run()
         .await
 }
@@ -106,17 +106,19 @@ async fn qcode_line_count() -> impl Responder {
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
 }
 
-async fn run_daily_job() {
-    let scheduler = Scheduler::new();
-    scheduler
-        .add("0 6 * * *", Task::new(|| async {
-            info!("Running daily task...");
-            update_qcode_project_count().await;
-            Ok(())
-        }))
-        .await
-        .unwrap();
-    scheduler.run().await.unwrap();
+fn run_daily_job() {
+    thread::spawn(async || {
+        let scheduler = Scheduler::new();
+        scheduler
+            .add("0 6 * * *", Task::new(|| async {
+                info!("Running daily task...");
+                update_qcode_project_count().await;
+                Ok(())
+            }))
+            .await
+            .unwrap();
+        scheduler.run().await.unwrap();
+    });
 }
 
 
