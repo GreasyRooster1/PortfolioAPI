@@ -23,6 +23,7 @@ struct IpData{
     latitude:String,
     longitude:String,
     isp: String,
+    host_url:String,
     request_url:String,
 
     count:u64,
@@ -44,16 +45,17 @@ pub(crate) async fn track_ip(req: HttpRequest){
         Ok(ip) => ip,
         Err(error) => {error!("Error: {}", error); return},
     };
-    let url = req.headers().get("Referer").and_then(|v| v.to_str().ok()).unwrap_or("none").to_string();
-    info!("Geolocated ip: {} - {}, {} ({}) @ {}N {}W isp:{} from {}", data.ip, data.city, data.region, data.country, data.latitude, data.longitude,data.isp,url);
-    match update_cache(data, url){
+    let host_url = req.headers().get("Referer").and_then(|v| v.to_str().ok()).unwrap_or("none").to_string();
+    let req_url = req.full_url().to_string();
+    info!("Geolocated ip: {} - {}, {} ({}) @ {}N {}W isp:{} from {} calling {}", data.ip, data.city, data.region, data.country, data.latitude, data.longitude,data.isp,host_url,req_url);
+    match update_cache(data, host_url,req_url){
         Ok(_) => {},
         Err(error) => {error!("Error: {}", error); return},
     }
     println!("{:?}", ip);
 }
 
-pub fn update_cache(data:Locator,url:String) -> Result<(), Box<dyn Error>>{
+pub fn update_cache(data:Locator,host_url:String,req_url:String) -> Result<(), Box<dyn Error>>{
     let file = File::open("./ip_cache.json")?;
     let reader = BufReader::new(file);
 
@@ -76,6 +78,7 @@ pub fn update_cache(data:Locator,url:String) -> Result<(), Box<dyn Error>>{
                 latitude:data.latitude.clone(),
                 longitude:data.longitude.clone(),
                 isp: data.isp.clone(),
+                host_url: data.host_url.clone(),
                 request_url: data.request_url.clone(),
 
                 count:data.count+1,
@@ -91,7 +94,8 @@ pub fn update_cache(data:Locator,url:String) -> Result<(), Box<dyn Error>>{
                 latitude: data.latitude.clone(),
                 longitude: data.longitude.clone(),
                 isp: data.isp.clone(),
-                request_url: url.clone(),
+                host_url: host_url.clone(),
+                request_url: req_url.clone(),
 
                 count: 1,
                 hits: vec![current_time]
