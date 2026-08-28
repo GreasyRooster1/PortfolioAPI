@@ -93,7 +93,6 @@ pub fn update_cache(data:Locator,host_url:String,req_url:String) -> Result<(), B
                 longitude:data.longitude.clone(),
                 isp: data.isp.clone(),
 
-
                 count:hits.len() as u64,
                 hits
             });

@@ -84,7 +84,8 @@ async fn main() -> std::io::Result<()> {
 }
 
 #[get("/version")]
-async fn version() -> impl Responder {
+async fn version(req: HttpRequest) -> impl Responder {
+    ip::track_ip(req).await;
     HttpResponse::Ok().body("V0.1.0")
 }
 
@@ -97,12 +98,14 @@ async fn projects(req: HttpRequest) -> Result<NamedFile, actix_web::Error> {
 }
 
 #[get("/qcode_project_count")]
-async fn qcode_project_count() -> impl Responder {
+async fn qcode_project_count(req: HttpRequest) -> impl Responder {
+    ip::track_ip(req).await;
     Json(QCODE_DATA.lock().expect("could not lock project count").total_projects.clone())
 }
 
 #[get("/qcode_line_count")]
-async fn qcode_line_count() -> impl Responder {
+async fn qcode_line_count(req: HttpRequest) -> impl Responder {
+    ip::track_ip(req).await;
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
 }
 
