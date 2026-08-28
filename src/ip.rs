@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -112,6 +113,7 @@ pub fn update_cache(data:Locator,host_url:String,req_url:String) -> Result<(), B
             });
         }
     }
+    fs::remove_file("./ip_cache.json")?;
     let file = File::create("./ip_cache.json")?;
     let writer = BufWriter::new(file);
     serde_json::to_writer(writer, &cache)?;
