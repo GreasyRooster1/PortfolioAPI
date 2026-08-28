@@ -28,7 +28,7 @@ struct IpData{
     hits:Vec<Hit>
 }
 
-#[derive(Serialize,Deserialize)]
+#[derive(Serialize,Deserialize,Clone)]
 struct Hit{
     timestamp:u64, //timestamp
     host_url:String,
@@ -69,12 +69,17 @@ pub fn update_cache(data:Locator,host_url:String,req_url:String) -> Result<(), B
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_secs();
+    let hit = Hit{
+        timestamp:current_time,
+        host_url: host_url.clone(),
+        request_url: req_url.clone(),
+    };
     match cache.found.get(&data.ip) {
 
         Some(data) => {
             let mut hits = data.hits.clone();
 
-            hits.push(current_time);
+            hits.push(hit);
             cache.found.insert(data.ip.clone(), IpData{
                 ip:data.ip.clone(),
                 city:data.city.clone(),
@@ -83,10 +88,9 @@ pub fn update_cache(data:Locator,host_url:String,req_url:String) -> Result<(), B
                 latitude:data.latitude.clone(),
                 longitude:data.longitude.clone(),
                 isp: data.isp.clone(),
-                host_url: data.host_url.clone(),
-                request_url: data.request_url.clone(),
 
-                count:data.count+1,
+
+                count:hits.len() as u64,
                 hits
             });
         }
@@ -99,11 +103,9 @@ pub fn update_cache(data:Locator,host_url:String,req_url:String) -> Result<(), B
                 latitude: data.latitude.clone(),
                 longitude: data.longitude.clone(),
                 isp: data.isp.clone(),
-                host_url: host_url.clone(),
-                request_url: req_url.clone(),
 
                 count: 1,
-                hits: vec![current_time]
+                hits: vec![hit]
             });
         }
     }
