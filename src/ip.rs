@@ -23,11 +23,16 @@ struct IpData{
     latitude:String,
     longitude:String,
     isp: String,
-    host_url:String,
-    request_url:String,
 
     count:u64,
-    hits:Vec<u64> //timestamp
+    hits:Vec<Hit>
+}
+
+#[derive(Serialize,Deserialize)]
+struct Hit{
+    timestamp:u64, //timestamp
+    host_url:String,
+    request_url:String,
 }
 
 pub(crate) async fn track_ip(req: HttpRequest){
