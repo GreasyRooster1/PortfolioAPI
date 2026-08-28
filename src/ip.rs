@@ -40,6 +40,10 @@ pub(crate) async fn track_ip(req: HttpRequest){
         .headers()
         .get("CF-Connecting-IP")
         .and_then(|v| v.to_str().ok());
+    let host_url = req.headers().get("Referer")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("none")
+        .to_string();
     let ip = match client_ip {
         Some(addr) => addr,
         None => {warn!("could not find ip");return}
@@ -50,7 +54,7 @@ pub(crate) async fn track_ip(req: HttpRequest){
         Ok(ip) => ip,
         Err(error) => {error!("Error: {}", error); return},
     };
-    let host_url = req.headers().get("Referer").and_then(|v| v.to_str().ok()).unwrap_or("none").to_string();
+
     let req_url = req.full_url().to_string();
     info!("Geolocated ip: {} - {}, {} ({}) @ {}N {}W isp:{} from {} calling {}", data.ip, data.city, data.region, data.country, data.latitude, data.longitude,data.isp,host_url,req_url);
     match update_cache(data, host_url,req_url){
