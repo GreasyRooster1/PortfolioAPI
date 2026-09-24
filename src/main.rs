@@ -24,7 +24,8 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use gcp_auth::CustomServiceAccount;
 use firebase_realtime_database::Database;
-use cronline::{Scheduler, Task};
+use tokio_cron_scheduler::{Job, JobScheduler};
+
 
 struct ProjectData{
     total_projects: i32,
@@ -111,16 +112,18 @@ async fn qcode_line_count(req: HttpRequest) -> impl Responder {
 
 fn run_daily_job() {
     thread::spawn(async || {
-        let scheduler = Scheduler::new();
-        scheduler
-            .add("0 6 * * *", Task::new(|| async {
-                info!("Running daily task...");
+        let daily_seconds = 24 * 60 * 60;
+        let mut daily_interval = interval(Duration::from_secs(daily_seconds));
+
+        loop {
+            // Wait for the next tick (the first tick happens immediately)
+            daily_interval.tick().await;
+
+            // Spawn the job so it doesn't block the timer if it takes long to execute
+            tokio::spawn(async {
                 update_qcode_project_count().await;
-                Ok(())
-            }))
-            .await
-            .unwrap();
-        scheduler.run().await.unwrap();
+            });
+        }
     });
 }
 
