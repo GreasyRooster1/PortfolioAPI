@@ -3,5 +3,5 @@ git reset --hard
 git pull
 echo "-" >> VERSION
 date +%Y%m%d%H%M%S >> VERSION
-cargo run --release
+cargo build --release
 systemctl restart portfolio-api.service
