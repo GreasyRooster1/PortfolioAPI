@@ -115,7 +115,7 @@ async fn qcode_line_count(req: HttpRequest) -> impl Responder {
 
 fn run_daily_job() {
     thread::spawn(|| {
-        let expression = "0 1 * * *";
+        let expression = "0 0 1 * * *";
         let schedule = Schedule::from_str(expression).expect("Failed to parse CRON expression");
 
         loop {
