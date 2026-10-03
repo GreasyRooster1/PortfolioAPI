@@ -90,7 +90,7 @@ async fn main() -> std::io::Result<()> {
 #[get("/version")]
 async fn version(req: HttpRequest) -> impl Responder {
     ip::track_ip(req).await;
-    HttpResponse::Ok().body("V0.1.0")
+    HttpResponse::Ok().body("V0.2.0")
 }
 
 #[get("/projects")]
