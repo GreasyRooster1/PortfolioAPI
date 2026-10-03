@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
-use std::{fs, thread};
+use std::{env, fs, thread};
 use std::time::Duration;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
@@ -40,6 +40,18 @@ static QCODE_DATA: LazyLock<Mutex<ProjectData>> = LazyLock::new(|| {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let args: Vec<String> = env::args().collect();
+
+    match args.get(1){
+        None => {}
+        Some(arg) => {
+            if arg=="--update-live-counts"{
+                update_qcode_project_count().await;
+                return Ok(());
+            }
+        }
+    }
+
     if let Err(e) = dotenvy::dotenv() {
         println!("cargo:warning=Could not load .env file: {}", e);
     }
@@ -59,8 +71,6 @@ async fn main() -> std::io::Result<()> {
         // stdout layer — keep console output too
         .with(fmt::layer().with_writer(std::io::stdout))
         .init();
-    update_qcode_project_count().await;
-    run_daily_job();
 
 
     HttpServer::new(|| {
@@ -108,23 +118,6 @@ async fn qcode_project_count(req: HttpRequest) -> impl Responder {
 async fn qcode_line_count(req: HttpRequest) -> impl Responder {
     ip::track_ip(req).await;
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
-}
-
-fn run_daily_job() {
-    thread::spawn(async || {
-        let daily_seconds = 24 * 60 * 60;
-        let mut daily_interval = interval(Duration::from_secs(daily_seconds));
-
-        loop {
-            // Wait for the next tick (the first tick happens immediately)
-            daily_interval.tick().await;
-
-            // Spawn the job so it doesn't block the timer if it takes long to execute
-            tokio::spawn(async {
-                update_qcode_project_count().await;
-            });
-        }
-    });
 }
 
 
