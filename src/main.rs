@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
-use std::{env, fs, thread};
+use std::{fs, thread};
 use std::time::Duration;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
@@ -25,7 +25,10 @@ use tracing_subscriber::util::SubscriberInitExt;
 use gcp_auth::CustomServiceAccount;
 use firebase_realtime_database::Database;
 use tokio_cron_scheduler::{Job, JobScheduler};
-
+use chrono::Utc;
+use cron::Schedule;
+use std::str::FromStr;
+use tokio::runtime::Runtime;
 
 struct ProjectData{
     total_projects: i32,
@@ -40,18 +43,6 @@ static QCODE_DATA: LazyLock<Mutex<ProjectData>> = LazyLock::new(|| {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-
-    match args.get(1){
-        None => {}
-        Some(arg) => {
-            if arg=="--update-live-counts"{
-                update_qcode_project_count().await;
-                return Ok(());
-            }
-        }
-    }
-
     if let Err(e) = dotenvy::dotenv() {
         println!("cargo:warning=Could not load .env file: {}", e);
     }
@@ -71,6 +62,8 @@ async fn main() -> std::io::Result<()> {
         // stdout layer — keep console output too
         .with(fmt::layer().with_writer(std::io::stdout))
         .init();
+    update_qcode_project_count().await;
+    run_daily_job();
 
 
     HttpServer::new(|| {
@@ -118,6 +111,24 @@ async fn qcode_project_count(req: HttpRequest) -> impl Responder {
 async fn qcode_line_count(req: HttpRequest) -> impl Responder {
     ip::track_ip(req).await;
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
+}
+
+fn run_daily_job() {
+    thread::spawn(|| {
+        let expression = "0 1 * * *";
+        let schedule = Schedule::from_str(expression).expect("Failed to parse CRON expression");
+
+        loop {
+            for datetime in schedule.upcoming(Utc).take(1) {
+                let now = Utc::now();
+                let until = datetime - now;
+                thread::sleep(until.to_std().unwrap());
+                println!("Hello, world!");
+                let rt = Runtime::new().unwrap();
+                rt.block_on(update_qcode_project_count());
+            }
+        }
+    });
 }
 
 
