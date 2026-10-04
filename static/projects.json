@@ -1,3 +1,124 @@
 {
-
+  "featured": [
+    {
+      "title": "Software Raytracer",
+      "year": "2024",
+      "imgSrc": "/Featured/WeekendRaytracing3.png",
+      "imgH": 310,
+      "desc": "A CPU based path tracer. Simulates light rays bouncing and refracting around a scene to create a realistic image. Supports reflective materials, glass and emissive materials",
+      "stats": [
+        { "k": "Language", "v": "Java" },
+        { "k": "Light Rays", "v": "2,844,444+" }
+      ],
+      "links": [
+        { "label": "source", "href":"https://github.com/GreasyRooster1/WeekendRaytracing"}
+      ]
+    },
+    {
+      "title": "Rigid Body Physics Simulation",
+      "year": "2025",
+      "imgSrc": "/Featured/VerletIntegration2.png",
+      "isVideo": true,
+      "videoSrc": "https://github.com/GreasyRooster1/Portfolio/raw/refs/heads/main/large/VerletIntegration1.mp4",
+      "imgH": 310,
+      "desc": "Simulates ropes, cloth, springs, and planets using a variation of the Semi-implicit Euler Method. Optimized to handle thousands of objects on a single thread. Fully deterministic",
+      "stats": [
+        { "k": "Language", "v": "Java, Rust" },
+        { "k": "particles @ 60fps", "v": "5,000" }
+      ],
+      "links": [
+        { "label": "source", "accent": false, "href":"https://github.com/GreasyRooster1/VerletIntegration"}
+      ]
+    },
+    {
+      "title": "Retro Render Engine",
+      "year": "2024",
+      "imgSrc": "/Featured/RaycastingEngine.png",
+      "isVideo": true,
+      "videoSrc": "https://github.com/GreasyRooster1/Portfolio/raw/refs/heads/main/large/RaycastingEngine1.mp4",
+      "imgH": 250,
+      "desc": "Rendering engine based on DOOM and Quake. Uses ray casts to approximate 3d graphics. Built with a fully featured level editor, textures, doors, and transparency",
+      "stats": [
+        { "k": "Language", "v": "Java" }
+      ],
+      "links": [
+        { "label": "source", "accent": false, "href":"https://github.com/GreasyRooster1/RaycastingEngine"}
+      ]
+    },
+    {
+      "title": "Falling Sand",
+      "year": "2022-2024",
+      "imgSrc": "/Featured/PowderLarge.png",
+      "isVideo": false,
+      "videoSrc": "/Featured/RaycastingEngine1.mp4",
+      "imgH": 250,
+      "desc": "A series of falling sand simulations. Simulates a gamified version of a variety of materials, including sand, water, lava, acid, and many more. Each simulation built on the last, and each offers something unique",
+      "stats": [
+        { "k": "Languages", "v": "Java, JS" },
+        { "k": "total elements", "v": "136" }
+      ],
+      "links": [
+        { "label": "source", "accent": false, "href":"https://github.com/GreasyRooster1/Powder/tree/master/src/main"}
+      ]
+    }
+  ],
+  "list": [
+    {
+      "n": "01",
+      "title": "Digital Yondr Replacement",
+      "sub": "Uses screen time API and NFC tags to allow for school districts to restrict phone usage during school hours.",
+      "stack": "Rust · Swift",
+      "result": "in development",
+      "links": [
+        { "label": "src", "href": "https://github.com/GreasyRooster1/Joshua" ,"accent": true}
+      ]
+    },
+    {
+      "n": "02",
+      "title": "Dynamic Planet Renderer",
+      "sub": "Renders a planet as a dynamic LOD mesh that increases resolution as the camera approaches to optimize performance.",
+      "stack": "Rust",
+      "result": "120fps @ full res",
+      "links": [
+        { "label": "video", "href": "https://www.youtube.com/watch?v=EIj5T-thvtM&t=87s" ,"accent": true},
+        { "label": "src", "href": "https://github.com/GreasyRooster1/Planets" ,"accent": false}
+      ]
+    },
+    {
+      "n": "03",
+      "title": "Fantasy Emulator",
+      "sub": "A fully custom bytecode and assembly language. Builds assembly files into bytecode directly. Has graphics support built-in.",
+      "stack": "Rust · Bevy",
+      "result": "running pong",
+      "links": [
+        { "label": "src", "href": "https://github.com/GreasyRooster1/FantasyEmulator" ,"accent": true}
+      ]
+    },
+    {
+      "n": "04",
+      "title": "Homebrew Compiler",
+      "sub": "A compiler for a custom language. Can compile to machine code or run as an interpreter",
+      "stack": "Rust",
+      "result": "c-style & turing complete",
+      "links": [
+        { "label": "src", "href": "https://github.com/GreasyRooster1/CustomLanguage","accent": true}
+      ]
+    },
+    {
+      "n": "05",
+      "title": "Minimal Desktop Station",
+      "sub": "Setup many centrally accessible desktop stations on a server for minimal cost, PXE boot to centralized OS image.",
+      "stack": "Raspberry Pi · Proxmox",
+      "result": "used in a production setting",
+      "links": [
+        { "label": "none" }
+      ]
+    }
+  ],
+  "experiments": [
+    { "name": "Terminal typing trainer", "tag": "GO" },
+    { "name": "Chord voicing explorer", "tag": "WEBAUDIO" },
+    { "name": "Regex → NFA visualiser", "tag": "CANVAS" },
+    { "name": "+ 6 more", "tag": "ALL", "muted": true }
+  ]
 }
