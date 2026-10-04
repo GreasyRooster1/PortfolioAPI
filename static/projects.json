@@ -80,7 +80,7 @@
       "stack": "Rust",
       "result": "120fps @ full res",
       "links": [
-        { "label": "video", "href": "https://www.youtube.com/watch?v=EIj5T-thvtM&t=87s" ,"accent": true},
+        { "label": "video", "href": "https://www.youtube.com/watch?v=EIj5T-thvtM" ,"accent": true},
         { "label": "src", "href": "https://github.com/GreasyRooster1/Planets" ,"accent": false}
       ]
     },
