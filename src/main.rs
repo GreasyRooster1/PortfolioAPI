@@ -1,4 +1,5 @@
 mod ip;
+mod db;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -29,6 +30,7 @@ use chrono::Utc;
 use cron::Schedule;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
+use crate::db::setup_database_pool;
 
 struct ProjectData{
     total_projects: i32,
@@ -47,6 +49,8 @@ async fn main() -> std::io::Result<()> {
         println!("cargo:warning=Could not load .env file: {}", e);
     }
 
+    let conn = setup_database_pool().await.expect("could not connect to db");
+
     let file_appender = rolling::Builder::new()
         .rotation(rolling::Rotation::DAILY)
         .filename_prefix("api.log")
@@ -62,11 +66,11 @@ async fn main() -> std::io::Result<()> {
         // stdout layer — keep console output too
         .with(fmt::layer().with_writer(std::io::stdout))
         .init();
+
     update_qcode_project_count().await;
     run_daily_job();
 
-
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         let cors = Cors::default()
             .allowed_origin("http://localhost:5173")
             .allowed_origin("http://localhost:8080")
@@ -75,6 +79,7 @@ async fn main() -> std::io::Result<()> {
             .allowed_headers(vec![header::AUTHORIZATION, header::CONTENT_TYPE])
             .max_age(3600);
         App::new()
+            .app_data(web::Data::new(conn.clone()))
             .wrap(Logger::new(r#"%{CF-Connecting-IP}i (%a) "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T"#))
             .wrap(cors)
             .service(version)
