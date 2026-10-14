@@ -148,7 +148,7 @@ async fn get_projects(req: HttpRequest, conn: web::Data<PgPool>, query:web::Path
     ip::track_ip(req).await;
     let query = query.into_inner();
 
-    let query_result = sqlx::query_as!(Project,"
+    let query_result = sqlx::query_as!(Project,r#"
         SELECT
             p.name,
             p.desc,
@@ -161,14 +161,14 @@ async fn get_projects(req: HttpRequest, conn: web::Data<PgPool>, query:web::Path
             c.name AS category_name,
             c.color as category_color,
             -- Calculate a relevance score based on your 'A', 'B', 'C' weights
-            ts_rank(search_vector, websearch_to_tsquery('english', 'running shoes')) AS relevance
+            ts_rank(search_vector, websearch_to_tsquery('english', $1)) AS relevance
         FROM projects p
         LEFT JOIN categories c ON c.id = p.category
         -- The @@ match operator ensures we use the GIN index
-        WHERE search_vector @@ websearch_to_tsquery('english', 'running shoes')
+        WHERE search_vector @@ websearch_to_tsquery('english', $1)
         ORDER BY relevance DESC
         LIMIT 10;
-    ")
+    "#,query)
         .fetch_all(conn.into_inner().deref())
         .await;
 
