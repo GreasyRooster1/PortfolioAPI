@@ -58,6 +58,7 @@ struct Project{
     category_name:Option<String>,
     category_color:Option<String>,
     significance: i32,
+    tags:sqlx::types::Json<Vec<RawTagData>>,
     relevance: Option<f32>,
 }
 #[derive(Deserialize,Serialize)]
@@ -66,8 +67,9 @@ struct QueryResult{
     count:i32,
     query:String,
 }
-#[derive(Deserialize,Serialize,Debug, sqlx::Type)]
+#[derive(Deserialize, Serialize, Debug, sqlx::Type)]
 #[sqlx(type_name = "tag_type", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
 enum TagType{
     Language,
     Technology
@@ -79,6 +81,13 @@ struct TagData{
     color:String,
     full_name:String,
     total_projects:Option<i64>,
+}
+#[derive(Deserialize,Serialize,Debug)]
+struct RawTagData{
+    name:String,
+    tag_type:TagType,
+    color:String,
+    full_name:String,
 }
 #[derive(Deserialize,Serialize)]
 struct DirectoryData{
@@ -183,12 +192,26 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
             p.significance,
             c.name AS category_name,
             c.color as category_color,
+            COALESCE(
+                json_agg(
+                    json_build_object(
+                        'name', t.name,
+                        'full_name', t.full_name,
+                        'tag_type', t.type,
+                        'color', t.color
+                    )
+                ) FILTER (WHERE t.id IS NOT NULL),
+                '[]'
+            ) AS "tags!: sqlx::types::Json<Vec<RawTagData>>",
             -- Calculate a relevance score based on your 'A', 'B', 'C' weights
             ts_rank(search_vector, websearch_to_tsquery('english', $1)) AS relevance
         FROM projects p
         LEFT JOIN categories c ON c.id = p.category
+        LEFT JOIN project_tags pt ON pt.project_id = p.id
+        LEFT JOIN tags t ON t.id = pt.tag_id
         -- The @@ match operator ensures we use the GIN index
         WHERE search_vector @@ websearch_to_tsquery('english', $1)
+        GROUP BY p.id, c.id
         ORDER BY relevance DESC
         LIMIT 10;
     "#,query)
@@ -210,7 +233,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
 }
 
 #[get("/get_directory_data")]
-async fn get_directory_data(req: HttpRequest,data: web::Data<AppState>,conn: web::Data<PgPool>) -> impl Responder {
+async fn get_directory_data(req: HttpRequest,data: web::Data<AppState>) -> impl Responder {
     ip::track_ip(req).await;
     let tags = sqlx::query_as!(TagData,r#"
         SELECT
