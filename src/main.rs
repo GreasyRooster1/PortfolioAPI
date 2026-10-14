@@ -180,7 +180,7 @@ async fn get_projects(req: HttpRequest, conn: web::Data<PgPool>, query:web::Path
     println!("{:?}", query_result);
 
     Ok(Json(QueryResult{
-        matches: vec![],
+        matches: query_result,
         count: 0,
         query: query.clone(),
     }))
