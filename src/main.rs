@@ -146,11 +146,12 @@ async fn qcode_line_count(req: HttpRequest) -> impl Responder {
 
 #[get("/get_projects/{query}")]
 async fn get_projects(req: HttpRequest, query:web::Path<String>) -> impl Responder {
+    let query = query.into_inner();
     ip::track_ip(req).await;
     Json(QueryResult{
         matches: vec![],
         count: 0,
-        query: "".to_string(),
+        query: query.clone(),
     })
 }
 
