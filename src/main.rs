@@ -66,6 +66,28 @@ struct QueryResult{
     count:i32,
     query:String,
 }
+#[derive(Deserialize,Serialize,Debug, sqlx::Type)]
+#[sqlx(type_name = "tag_type", rename_all = "lowercase")]
+enum TagType{
+    Language,
+    Technology
+}
+#[derive(Deserialize,Serialize)]
+struct TagData{
+    name:String,
+    tag_type:TagType,
+    color:String,
+    full_name:String,
+    total_projects:Option<i64>,
+}
+#[derive(Deserialize,Serialize)]
+struct DirectoryData{
+    tags:Vec<TagData>,
+    total_projects:i64,
+}
+struct AppState {
+    db: PgPool,
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -103,14 +125,15 @@ async fn main() -> std::io::Result<()> {
             .allowed_headers(vec![header::AUTHORIZATION, header::CONTENT_TYPE])
             .max_age(3600);
         App::new()
-            .app_data(web::Data::new(conn.clone()))
+            .app_data(web::Data::new(AppState { db: conn.clone() }))
             .wrap(Logger::new(r#"%{CF-Connecting-IP}i (%a) "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T"#))
             .wrap(cors)
             .service(version)
             .service(projects)
             .service(qcode_project_count)
             .service(qcode_line_count)
-            .service(get_projects)
+            .service(search_projects)
+            .service(get_directory_data)
     })
         .bind(("0.0.0.0", 8080))?
         .run()
@@ -143,8 +166,8 @@ async fn qcode_line_count(req: HttpRequest) -> impl Responder {
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
 }
 
-#[get("/get_projects/{query}")]
-async fn get_projects(req: HttpRequest, conn: web::Data<PgPool>, query:web::Path<String>) -> actix_web::Result<impl Responder> {
+#[get("/search_projects/{query}")]
+async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web::Path<String>) -> actix_web::Result<impl Responder> {
     ip::track_ip(req).await;
     let query = query.into_inner();
 
@@ -169,7 +192,7 @@ async fn get_projects(req: HttpRequest, conn: web::Data<PgPool>, query:web::Path
         ORDER BY relevance DESC
         LIMIT 10;
     "#,query)
-        .fetch_all(conn.into_inner().deref())
+        .fetch_all(&data.db)
         .await;
 
     let query_result = match query_result {
@@ -184,6 +207,64 @@ async fn get_projects(req: HttpRequest, conn: web::Data<PgPool>, query:web::Path
         count: 0,
         query: query.clone(),
     }))
+}
+
+#[get("/get_directory_data")]
+async fn get_directory_data(req: HttpRequest,data: web::Data<AppState>,conn: web::Data<PgPool>) -> impl Responder {
+    ip::track_ip(req).await;
+    let tags = sqlx::query_as!(TagData,r#"
+        SELECT
+            t.name,
+            t.color,
+            t.type as "tag_type: TagType",
+            t.full_name,
+            COUNT(p.tag_id) AS total_projects
+        FROM
+            tags t
+        LEFT JOIN
+            project_tags p ON p.tag_id = t.id
+        GROUP BY
+            p.tag_id,
+            t.name,
+            t.color,
+            t.type,
+            t.full_name
+    "#)
+        .fetch_all(&data.db)
+        .await;
+
+    let tags = match tags {
+        Ok(tags) => tags,
+        Err(e) => {println!("{:?}",e);return Err(e).map_err(|err| error::ErrorBadRequest(err))}
+    };
+
+    let total_projects = sqlx::query_scalar!(r#"
+        SELECT COUNT(*) FROM projects;
+    "#)
+        .fetch_one(&data.db)
+        .await;
+
+    let total_projects = match total_projects {
+        Ok(total_projects) => total_projects,
+        Err(e) => {println!("{:?}",e);return Err(e).map_err(|err| error::ErrorBadRequest(err))}
+    };
+
+    match total_projects {
+        None => {
+            Ok(Json(DirectoryData{
+                tags,
+                total_projects:0,
+            }))
+        }
+        Some(total_projects) => {
+            Ok(Json(DirectoryData{
+                tags,
+                total_projects,
+            }))
+        }
+    }
+
+
 }
 
 fn run_daily_job() {
