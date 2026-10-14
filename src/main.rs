@@ -29,6 +29,7 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 use chrono::Utc;
 use cron::Schedule;
 use std::str::FromStr;
+use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 use crate::db::setup_database_pool;
 
@@ -43,10 +44,12 @@ static QCODE_DATA: LazyLock<Mutex<ProjectData>> = LazyLock::new(|| {
     })
 });
 
+#[derive(Deserialize,Serialize)]
 struct ProjectCategory{
     name:String,
     color:String,
 }
+#[derive(Deserialize,Serialize)]
 struct Project{
     name: String,
     desc:Option<String>,
@@ -57,6 +60,12 @@ struct Project{
     other_link_nane:Option<String>,
     category: Option<ProjectCategory>,
     significance: i32,
+}
+#[derive(Deserialize,Serialize)]
+struct QueryResult{
+    matches:Vec<Project>,
+    count:i32,
+    query:String,
 }
 
 #[actix_web::main]
@@ -135,10 +144,14 @@ async fn qcode_line_count(req: HttpRequest) -> impl Responder {
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
 }
 
-#[get("/get_projects/")]
-async fn get_projects(req: HttpRequest) -> impl Responder {
+#[get("/get_projects/{query}")]
+async fn get_projects(req: HttpRequest, query:web::Path<String>) -> impl Responder {
     ip::track_ip(req).await;
-    Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
+    Json(QueryResult{
+        matches: vec![],
+        count: 0,
+        query: "".to_string(),
+    })
 }
 
 fn run_daily_job() {
