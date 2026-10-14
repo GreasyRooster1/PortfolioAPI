@@ -59,6 +59,7 @@ struct Project{
     category_color:Option<String>,
     significance: i32,
     tags:sqlx::types::Json<Vec<RawTagData>>,
+    private:bool,
     relevance: Option<f32>,
 }
 #[derive(Deserialize,Serialize)]
@@ -190,6 +191,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
             p.other_link_url,
             p.other_link_name,
             p.significance,
+            p.private,
             c.name AS category_name,
             c.color as category_color,
             COALESCE(
