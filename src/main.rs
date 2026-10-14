@@ -49,13 +49,14 @@ struct ProjectCategory{
 }
 struct Project{
     name: String,
-    desc:String,
-    source:String,
-    writeup:String,
-    gallery:String,
-    other_link_url:String,
-    other_link_nane:String,
-    category: ProjectCategory,
+    desc:Option<String>,
+    source:Option<String>,
+    writeup:Option<String>,
+    gallery:Option<String>,
+    other_link_url:Option<String>,
+    other_link_nane:Option<String>,
+    category: Option<ProjectCategory>,
+    significance: i32,
 }
 
 #[actix_web::main]
@@ -101,6 +102,7 @@ async fn main() -> std::io::Result<()> {
             .service(projects)
             .service(qcode_project_count)
             .service(qcode_line_count)
+            .service(get_projects)
     })
         .bind(("0.0.0.0", 8080))?
         .run()
@@ -129,6 +131,12 @@ async fn qcode_project_count(req: HttpRequest) -> impl Responder {
 
 #[get("/qcode_line_count")]
 async fn qcode_line_count(req: HttpRequest) -> impl Responder {
+    ip::track_ip(req).await;
+    Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
+}
+
+#[get("/get_projects/")]
+async fn get_projects(req: HttpRequest) -> impl Responder {
     ip::track_ip(req).await;
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
 }
