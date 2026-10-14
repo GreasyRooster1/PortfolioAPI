@@ -6,8 +6,9 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 use std::{fs, thread};
+use std::ops::Deref;
 use std::time::Duration;
-use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{error, get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::middleware::Logger;
 use actix_cors::Cors;
 use actix_files::NamedFile;
@@ -30,6 +31,7 @@ use chrono::Utc;
 use cron::Schedule;
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+use sqlx::{Error, PgPool};
 use tokio::runtime::Runtime;
 use crate::db::setup_database_pool;
 
@@ -44,12 +46,7 @@ static QCODE_DATA: LazyLock<Mutex<ProjectData>> = LazyLock::new(|| {
     })
 });
 
-#[derive(Deserialize,Serialize)]
-struct ProjectCategory{
-    name:String,
-    color:String,
-}
-#[derive(Deserialize,Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 struct Project{
     name: String,
     desc:Option<String>,
@@ -57,9 +54,11 @@ struct Project{
     writeup:Option<String>,
     gallery:Option<String>,
     other_link_url:Option<String>,
-    other_link_nane:Option<String>,
-    category: Option<ProjectCategory>,
+    other_link_name:Option<String>,
+    category_name:Option<String>,
+    category_color:Option<String>,
     significance: i32,
+    relevance: Option<f32>,
 }
 #[derive(Deserialize,Serialize)]
 struct QueryResult{
@@ -145,14 +144,46 @@ async fn qcode_line_count(req: HttpRequest) -> impl Responder {
 }
 
 #[get("/get_projects/{query}")]
-async fn get_projects(req: HttpRequest, query:web::Path<String>) -> impl Responder {
-    let query = query.into_inner();
+async fn get_projects(req: HttpRequest, conn: web::Data<PgPool>, query:web::Path<String>) -> actix_web::Result<impl Responder> {
     ip::track_ip(req).await;
-    Json(QueryResult{
+    let query = query.into_inner();
+
+    let query_result = sqlx::query_as!(Project,"
+        SELECT
+            p.name,
+            p.desc,
+            p.source,
+            p.writeup,
+            p.gallery,
+            p.other_link_url,
+            p.other_link_name,
+            p.significance,
+            c.name AS category_name,
+            c.color as category_color,
+            -- Calculate a relevance score based on your 'A', 'B', 'C' weights
+            ts_rank(search_vector, websearch_to_tsquery('english', 'running shoes')) AS relevance
+        FROM projects p
+        LEFT JOIN categories c ON c.id = p.category
+        -- The @@ match operator ensures we use the GIN index
+        WHERE search_vector @@ websearch_to_tsquery('english', 'running shoes')
+        ORDER BY relevance DESC
+        LIMIT 10;
+    ")
+        .fetch_all(conn.into_inner().deref())
+        .await;
+
+    let query_result = match query_result {
+        Ok(query_result) => query_result,
+        Err(e) => {return Err(e).map_err(|err| error::ErrorBadRequest(err))}
+    };
+
+    println!("{:?}", query_result);
+
+    Ok(Json(QueryResult{
         matches: vec![],
         count: 0,
         query: query.clone(),
-    })
+    }))
 }
 
 fn run_daily_job() {
