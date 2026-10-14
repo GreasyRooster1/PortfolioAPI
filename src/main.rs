@@ -43,6 +43,21 @@ static QCODE_DATA: LazyLock<Mutex<ProjectData>> = LazyLock::new(|| {
     })
 });
 
+struct ProjectCategory{
+    name:String,
+    color:String,
+}
+struct Project{
+    name: String,
+    desc:String,
+    source:String,
+    writeup:String,
+    gallery:String,
+    other_link_url:String,
+    other_link_nane:String,
+    category: ProjectCategory,
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     if let Err(e) = dotenvy::dotenv() {
