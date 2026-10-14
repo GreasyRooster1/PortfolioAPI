@@ -18,7 +18,7 @@ use actix_web::rt::time::{interval, Interval};
 use actix_web::web::Json;
 use firebase_rs::Firebase;
 use serde_json::Value;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, trace};
 use tracing::log::log;
 use tracing_appender::rolling;
 use tracing_subscriber::{fmt, EnvFilter};
@@ -174,7 +174,7 @@ async fn get_projects(req: HttpRequest, conn: web::Data<PgPool>, query:web::Path
 
     let query_result = match query_result {
         Ok(query_result) => query_result,
-        Err(e) => {return Err(e).map_err(|err| error::ErrorBadRequest(err))}
+        Err(e) => {println!("{:?}",e);return Err(e).map_err(|err| error::ErrorBadRequest(err))}
     };
 
     println!("{:?}", query_result);
