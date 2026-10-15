@@ -48,7 +48,7 @@ static QCODE_DATA: LazyLock<Mutex<ProjectData>> = LazyLock::new(|| {
 
 #[derive(Deserialize, Serialize, Debug)]
 struct Project{
-    name: String,
+    name: Option<String>,
     desc:Option<String>,
     source:Option<String>,
     writeup:Option<String>,
@@ -57,9 +57,9 @@ struct Project{
     other_link_name:Option<String>,
     category_name:Option<String>,
     category_color:Option<String>,
-    significance: i32,
+    significance: Option<i32>,
     tags:sqlx::types::Json<Vec<RawTagData>>,
-    private:bool,
+    private:Option<bool>,
     relevance: Option<f32>,
 }
 #[derive(Deserialize,Serialize)]
@@ -85,10 +85,10 @@ struct TagData{
 }
 #[derive(Deserialize,Serialize,Debug)]
 struct RawTagData{
-    name:String,
-    tag_type:TagType,
-    color:String,
-    full_name:String,
+    name:Option<String>,
+    tag_type:Option<TagType>,
+    color:Option<String>,
+    full_name:Option<String>,
 }
 #[derive(Deserialize,Serialize)]
 struct DirectoryData{
@@ -183,17 +183,17 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
 
     let query_result = sqlx::query_as!(Project,r#"
         SELECT
-            p.name,
+            p.name as "name?",
             p.desc,
             p.source,
             p.writeup,
             p.gallery,
             p.other_link_url,
             p.other_link_name,
-            p.significance,
-            p.private,
-            c.name AS category_name,
-            c.color as category_color,
+            p.significance as "significance?",
+            p.private as "private?",
+            c.name AS "category_name?",
+            c.color as "category_color?",
             COALESCE(
                 json_agg(
                     json_build_object(
