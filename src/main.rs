@@ -214,7 +214,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
         -- The @@ match operator ensures we use the GIN index
         WHERE search_vector @@ websearch_to_tsquery('english', $1)
         GROUP BY p.id, c.id
-        ORDER BY relevance DESC, significance DESC
+        ORDER BY significance DESC, relevance DESC
         LIMIT 20;
     "#,query)
             .fetch_all(&data.db)
@@ -263,7 +263,6 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
         Err(e) => {println!("{:?}",e);return Err(e).map_err(|err| error::ErrorBadRequest(err))}
     };
 
-    println!("{:?}", query_result);
 
     Ok(Json(QueryResult{
         matches: query_result,
