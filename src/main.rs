@@ -180,7 +180,7 @@ async fn qcode_line_count(req: HttpRequest, data: web::Data<AppState>) -> impl R
 async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web::Path<String>) -> actix_web::Result<impl Responder> {
     ip::track_ip(req,&data.db).await;
     let mut query = query.into_inner();
-    let query_result = if query=="" {
+    let query_result = if query!="NO_QUERY_VIEW_ALL" {
         sqlx::query_as!(Project,r#"
         SELECT
             p.name as "name?",
