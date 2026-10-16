@@ -214,7 +214,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
         -- The @@ match operator ensures we use the GIN index
         WHERE search_vector @@ websearch_to_tsquery('english', $1)
         GROUP BY p.id, c.id
-        ORDER BY relevance DESC
+        ORDER BY relevance DESC, significance DESC
         LIMIT 10;
     "#,query)
             .fetch_all(&data.db)
