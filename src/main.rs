@@ -151,34 +151,34 @@ async fn main() -> std::io::Result<()> {
 }
 
 #[get("/version")]
-async fn version(req: HttpRequest) -> impl Responder {
-    ip::track_ip(req).await;
+async fn version(req: HttpRequest, data: web::Data<AppState>) -> impl Responder {
+    ip::track_ip(req,&data.db).await;
     HttpResponse::Ok().body(include_str!("../VERSION"))
 }
 
 #[get("/projects")]
-async fn projects(req: HttpRequest) -> Result<NamedFile, actix_web::Error> {
+async fn projects(req: HttpRequest, data: web::Data<AppState>) -> Result<NamedFile, actix_web::Error> {
     let path: PathBuf = "./static/projects.json".into();
     let file = NamedFile::open_async(path).await?;
-    ip::track_ip(req).await;
+    ip::track_ip(req,&data.db).await;
     Ok(file)
 }
 
 #[get("/qcode_project_count")]
-async fn qcode_project_count(req: HttpRequest) -> impl Responder {
-    ip::track_ip(req).await;
+async fn qcode_project_count(req: HttpRequest, data: web::Data<AppState>) -> impl Responder {
+    ip::track_ip(req,&data.db).await;
     Json(QCODE_DATA.lock().expect("could not lock project count").total_projects.clone())
 }
 
 #[get("/qcode_line_count")]
-async fn qcode_line_count(req: HttpRequest) -> impl Responder {
-    ip::track_ip(req).await;
+async fn qcode_line_count(req: HttpRequest, data: web::Data<AppState>) -> impl Responder {
+    ip::track_ip(req,&data.db).await;
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
 }
 
 #[get("/search_projects/{query}")]
 async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web::Path<String>) -> actix_web::Result<impl Responder> {
-    ip::track_ip(req).await;
+    ip::track_ip(req,&data.db).await;
     let query = query.into_inner();
 
     let query_result = sqlx::query_as!(Project,r#"
@@ -236,7 +236,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
 
 #[get("/get_directory_data")]
 async fn get_directory_data(req: HttpRequest,data: web::Data<AppState>) -> impl Responder {
-    ip::track_ip(req).await;
+    ip::track_ip(req,&data.db).await;
     let tags = sqlx::query_as!(TagData,r#"
         SELECT
             t.name,
