@@ -179,9 +179,9 @@ async fn qcode_line_count(req: HttpRequest, data: web::Data<AppState>) -> impl R
 #[get("/search_projects/{query}")]
 async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web::Path<String>) -> actix_web::Result<impl Responder> {
     ip::track_ip(req,&data.db).await;
-    let query = query.into_inner();
-
-    let query_result = sqlx::query_as!(Project,r#"
+    let mut query = query.into_inner();
+    let query_result = if query=="NO_QUERY_VIEW_ALL" {
+        sqlx::query_as!(Project,r#"
         SELECT
             p.name as "name?",
             p.desc,
@@ -217,8 +217,46 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
         ORDER BY relevance DESC
         LIMIT 10;
     "#,query)
-        .fetch_all(&data.db)
-        .await;
+            .fetch_all(&data.db)
+            .await
+    }else{
+        sqlx::query_as!(Project,r#"
+        SELECT
+            p.name as "name?",
+            p.desc,
+            p.source,
+            p.writeup,
+            p.gallery,
+            p.other_link_url,
+            p.other_link_name,
+            p.significance as "significance?",
+            p.private as "private?",
+            c.name AS "category_name?",
+            c.color as "category_color?",
+            COALESCE(
+                json_agg(
+                    json_build_object(
+                        'name', t.name,
+                        'full_name', t.full_name,
+                        'tag_type', t.type,
+                        'color', t.color
+                    )
+                ) FILTER (WHERE t.id IS NOT NULL),
+                '[]'
+            ) AS "tags!: sqlx::types::Json<Vec<RawTagData>>",
+            0.0 as relevance
+        FROM projects p
+        LEFT JOIN categories c ON c.id = p.category
+        LEFT JOIN project_tags pt ON pt.project_id = p.id
+        LEFT JOIN tags t ON t.id = pt.tag_id
+        GROUP BY p.id, c.id
+        ORDER BY significance DESC
+        LIMIT 10;
+    "#)
+            .fetch_all(&data.db)
+            .await
+    };
+
 
     let query_result = match query_result {
         Ok(query_result) => query_result,
