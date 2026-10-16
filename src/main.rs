@@ -180,7 +180,7 @@ async fn qcode_line_count(req: HttpRequest, data: web::Data<AppState>) -> impl R
 async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web::Path<String>) -> actix_web::Result<impl Responder> {
     ip::track_ip(req,&data.db).await;
     let mut query = query.into_inner();
-    let query_result = if query=="NO_QUERY_VIEW_ALL" {
+    let query_result = if query=="" {
         sqlx::query_as!(Project,r#"
         SELECT
             p.name as "name?",
@@ -244,7 +244,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
                 ) FILTER (WHERE t.id IS NOT NULL),
                 '[]'
             ) AS "tags!: sqlx::types::Json<Vec<RawTagData>>",
-            0.0 as relevance
+            0.0 as "relevance?: f32"
         FROM projects p
         LEFT JOIN categories c ON c.id = p.category
         LEFT JOIN project_tags pt ON pt.project_id = p.id
