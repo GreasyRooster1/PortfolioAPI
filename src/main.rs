@@ -215,7 +215,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
         WHERE search_vector @@ websearch_to_tsquery('english', $1)
         GROUP BY p.id, c.id
         ORDER BY relevance DESC, significance DESC
-        LIMIT 10;
+        LIMIT 20;
     "#,query)
             .fetch_all(&data.db)
             .await
@@ -251,7 +251,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
         LEFT JOIN tags t ON t.id = pt.tag_id
         GROUP BY p.id, c.id
         ORDER BY significance DESC
-        LIMIT 10;
+        LIMIT 20;
     "#)
             .fetch_all(&data.db)
             .await
