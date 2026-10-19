@@ -95,6 +95,14 @@ struct DirectoryData{
     tags:Vec<TagData>,
     total_projects:i64,
 }
+
+#[derive(Deserialize)]
+struct SearchRequests {
+    query:String,
+    lang_filter: String,
+    tech_filter: String,
+}
+
 struct AppState {
     db: PgPool,
 }
@@ -176,10 +184,22 @@ async fn qcode_line_count(req: HttpRequest, data: web::Data<AppState>) -> impl R
     Json(QCODE_DATA.lock().expect("could not lock project count").total_lines.clone())
 }
 
-#[get("/search_projects/{query}")]
-async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web::Path<String>) -> actix_web::Result<impl Responder> {
+#[get("/search_projects/{query}/{lang_filter}/{tech_filter}")]
+async fn search_projects(req: HttpRequest, data: web::Data<AppState>, request:web::Path<SearchRequests>) -> actix_web::Result<impl Responder> {
     ip::track_ip(req,&data.db).await;
-    let mut query = query.into_inner();
+    let query = &request.query;
+    let lang = &request.lang_filter;
+    let lang = if lang=="NO_LANG_VIEW_ALL" {
+        None
+    }else{
+        Some(&request.lang_filter)
+    };
+    let tech = &request.tech_filter;
+    let tech = if tech=="NO_TECH_VIEW_ALL" {
+        None
+    }else{
+        Some(&request.tech_filter)
+    };
     let query_result = if query!="NO_QUERY_VIEW_ALL" {
         sqlx::query_as!(Project,r#"
         SELECT
@@ -213,10 +233,30 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, query:web:
         LEFT JOIN tags t ON t.id = pt.tag_id
         -- The @@ match operator ensures we use the GIN index
         WHERE search_vector @@ websearch_to_tsquery('english', $1)
+        AND (
+            $2::text IS NULL
+            OR EXISTS (
+                SELECT 1
+                FROM project_tags pt2
+                JOIN tags t2 ON t2.id = pt2.tag_id
+                WHERE pt2.project_id = p.id
+                  AND t2.name = $2::text
+            )
+          )
+        AND (
+            $3::text IS NULL
+            OR EXISTS (
+                SELECT 1
+                FROM project_tags pt2
+                JOIN tags t2 ON t2.id = pt2.tag_id
+                WHERE pt2.project_id = p.id
+                  AND t2.name = $2::text
+            )
+          )
         GROUP BY p.id, c.id
         ORDER BY significance DESC, relevance DESC
         LIMIT 20;
-    "#,query)
+    "#,query,lang,tech)
             .fetch_all(&data.db)
             .await
     }else{
