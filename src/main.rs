@@ -200,6 +200,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, request:we
     }else{
         Some(&request.tech_filter)
     };
+    info!(request.lang_filter,request.tech_filter);
     let query_result = if query!="NO_QUERY_VIEW_ALL" {
         sqlx::query_as!(Project,r#"
         SELECT
@@ -247,10 +248,10 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, request:we
             $3::text IS NULL
             OR EXISTS (
                 SELECT 1
-                FROM project_tags pt2
-                JOIN tags t2 ON t2.id = pt2.tag_id
-                WHERE pt2.project_id = p.id
-                  AND t2.name = $2::text
+                FROM project_tags pt3
+                JOIN tags t3 ON t3.id = pt3.tag_id
+                WHERE pt3.project_id = p.id
+                  AND t3.name = $3::text
             )
           )
         GROUP BY p.id, c.id
@@ -284,15 +285,37 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, request:we
                 ) FILTER (WHERE t.id IS NOT NULL),
                 '[]'
             ) AS "tags!: sqlx::types::Json<Vec<RawTagData>>",
-            0.0 as "relevance?: f32"
+            -- Calculate a relevance score based on your 'A', 'B', 'C' weights
+            ts_rank(search_vector, websearch_to_tsquery('english', $1)) AS relevance
         FROM projects p
         LEFT JOIN categories c ON c.id = p.category
         LEFT JOIN project_tags pt ON pt.project_id = p.id
         LEFT JOIN tags t ON t.id = pt.tag_id
+        -- The @@ match operator ensures we use the GIN index
+        WHERE (
+            $1::text IS NULL
+            OR EXISTS (
+                SELECT 1
+                FROM project_tags pt1
+                JOIN tags t1 ON t1.id = pt1.tag_id
+                WHERE pt1.project_id = p.id
+                  AND t1.name = $1::text
+            )
+          )
+        AND (
+            $2::text IS NULL
+            OR EXISTS (
+                SELECT 1
+                FROM project_tags pt2
+                JOIN tags t2 ON t2.id = pt2.tag_id
+                WHERE pt2.project_id = p.id
+                  AND t2.name = $2::text
+            )
+          )
         GROUP BY p.id, c.id
         ORDER BY significance DESC
         LIMIT 20;
-    "#)
+    "#,lang,tech)
             .fetch_all(&data.db)
             .await
     };
