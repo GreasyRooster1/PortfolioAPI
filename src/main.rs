@@ -256,7 +256,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, request:we
           )
         GROUP BY p.id, c.id
         ORDER BY significance DESC, relevance DESC
-        LIMIT 20;
+--         LIMIT 20;
     "#,query,lang,tech)
             .fetch_all(&data.db)
             .await
@@ -314,7 +314,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, request:we
           )
         GROUP BY p.id, c.id
         ORDER BY significance DESC
-        LIMIT 20;
+--         LIMIT 20;
     "#,lang,tech)
             .fetch_all(&data.db)
             .await
