@@ -5,13 +5,14 @@
       "year": "2024",
       "imgSrc": "/Featured/WeekendRaytracing3.png",
       "imgH": 310,
-      "desc": "A CPU based path tracer. Simulates light rays bouncing and refracting around a scene to create a realistic image. Supports reflective materials, glass and emissive materials",
+      "desc": "A multi-threaded CPU based path tracer. Simulates light rays bouncing and refracting around a scene to create a realistic image. Supports reflective materials, glass and emissive materials",
       "stats": [
         { "k": "Language", "v": "Java" },
         { "k": "Light Rays", "v": "2,844,444+" }
       ],
       "links": [
-        { "label": "source", "href":"https://github.com/GreasyRooster1/WeekendRaytracing"}
+        { "label": "source", "href":"https://github.com/GreasyRooster1/WeekendRaytracing"},
+        { "label": "gallery", "href":"/raytracer_gallery"}
       ]
     },
     {
