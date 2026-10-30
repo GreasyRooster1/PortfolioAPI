@@ -254,6 +254,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, request:we
                   AND t3.name = $3::text
             )
           )
+        AND p.full_private = false
         GROUP BY p.id, c.id
         ORDER BY significance DESC, relevance DESC
 --         LIMIT 20;
@@ -312,6 +313,7 @@ async fn search_projects(req: HttpRequest, data: web::Data<AppState>, request:we
                   AND t2.name = $2::text
             )
           )
+        AND p.full_private = false
         GROUP BY p.id, c.id
         ORDER BY significance DESC
 --         LIMIT 20;
