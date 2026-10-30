@@ -98,9 +98,9 @@
     {
       "n": "04",
       "title": "Homebrew Compiler",
-      "sub": "A compiler for a custom language. Can compile to machine code or run as an interpreter",
+      "sub": "A compiler for a custom language. Compiles code into a pseudo machine code representation before executing directly in the host process",
       "stack": "Rust",
-      "result": "c-style & turing complete",
+      "result": "runs small games",
       "links": [
         { "label": "src", "href": "https://github.com/GreasyRooster1/CustomLanguage","accent": true}
       ]
@@ -110,7 +110,7 @@
       "title": "Minimal Desktop Station",
       "sub": "Setup many centrally accessible desktop stations on a server for minimal cost, PXE boot to centralized OS image.",
       "stack": "Raspberry Pi · Proxmox",
-      "result": "used in a production setting",
+      "result": "in development for production",
       "links": [
         { "label": "none" }
       ]
